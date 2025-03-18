@@ -6,19 +6,21 @@
     <title>Simulation GPR</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        canvas { max-width: 100%; }
+        canvas { max-width: 100%; display: block; margin-top: 10px; }
     </style>
 </head>
 <body>
     <h1>Simulation GPR</h1>
+    <input type="file" id="fileInput" accept=".mat">
+    <button onclick="loadModel()">Charger le modèle</button>
     <canvas id="gprCanvas" width="400" height="100"></canvas>
     <script>
+        let eps_r;
         const Nx = 400, Nz = 100;
         const dx = 0.01, dz = 0.01;
         const c0 = 3e8;
         const mu0 = 4 * Math.PI * 1e-7;
         const epsilon0 = 8.854e-12;
-        let eps_r = Array.from({ length: Nz }, () => Array(Nx).fill(6));
         let sigma = Array.from({ length: Nz }, () => Array(Nx).fill(0));
         let Ez = Array.from({ length: Nz }, () => Array(Nx).fill(0));
         let Hx = Array.from({ length: Nz }, () => Array(Nx).fill(0));
@@ -29,6 +31,34 @@
 
         const ctx = document.getElementById('gprCanvas').getContext('2d');
         const imageData = ctx.createImageData(Nx, Nz);
+
+        function loadModel() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Veuillez sélectionner un fichier .mat");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = new Float32Array(event.target.result);
+                    eps_r = [];
+                    let index = 0;
+                    for (let i = 0; i < Nz; i++) {
+                        eps_r[i] = [];
+                        for (let j = 0; j < Nx; j++) {
+                            eps_r[i][j] = data[index++] || 6; // Valeur par défaut
+                        }
+                    }
+                    alert("Modèle chargé avec succès !");
+                    simulateGPR();
+                } catch (e) {
+                    alert("Erreur lors du chargement du fichier");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
         function updateCanvas() {
             for (let i = 0; i < Nz; i++) {
@@ -45,6 +75,10 @@
         }
 
         function simulateGPR() {
+            if (!eps_r) {
+                alert("Veuillez charger un modèle avant de lancer la simulation.");
+                return;
+            }
             for (let sx = 2; sx < Nx - 1; sx++) {
                 let sz = 10;
                 Ez = Ez.map(row => row.map(() => 0));
@@ -70,8 +104,6 @@
                 }
             }
         }
-
-        simulateGPR();
     </script>
 </body>
 </html>
