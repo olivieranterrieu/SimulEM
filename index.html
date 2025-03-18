@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulation GPR1</title>
+    <title>Simulation GPR</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         canvas { max-width: 100%; display: block; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>Simulation GPR1</h1>
+    <h1>Simulation GPR</h1>
     <input type="file" id="fileInput" accept=".mat">
     <button onclick="loadModel()">Charger le modèle</button>
     <canvas id="gprCanvas" width="400" height="100"></canvas>
     <script>
         let eps_r;
-        const Nx = 400, Nz = 100;
+        const Nx = 200, Nz = 100;
         const dx = 0.01, dz = 0.01;
         const c0 = 3e8;
         const mu0 = 4 * Math.PI * 1e-7;
