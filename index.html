@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation GPR</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        canvas { max-width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Simulation GPR</h1>
+    <canvas id="gprCanvas" width="400" height="100"></canvas>
+    <script>
+        const Nx = 400, Nz = 100;
+        const dx = 0.01, dz = 0.01;
+        const c0 = 3e8;
+        const mu0 = 4 * Math.PI * 1e-7;
+        const epsilon0 = 8.854e-12;
+        let eps_r = Array.from({ length: Nz }, () => Array(Nx).fill(6));
+        let sigma = Array.from({ length: Nz }, () => Array(Nx).fill(0));
+        let Ez = Array.from({ length: Nz }, () => Array(Nx).fill(0));
+        let Hx = Array.from({ length: Nz }, () => Array(Nx).fill(0));
+        let Hz = Array.from({ length: Nz }, () => Array(Nx).fill(0));
+
+        let dt = 0.99 / (c0 * Math.sqrt((1 / dx ** 2) + (1 / dz ** 2)));
+        let Nt = 512;
+
+        const ctx = document.getElementById('gprCanvas').getContext('2d');
+        const imageData = ctx.createImageData(Nx, Nz);
+
+        function updateCanvas() {
+            for (let i = 0; i < Nz; i++) {
+                for (let j = 0; j < Nx; j++) {
+                    let value = (Ez[i][j] + 0.01) * 128;
+                    let index = (i * Nx + j) * 4;
+                    imageData.data[index] = value;
+                    imageData.data[index + 1] = 0;
+                    imageData.data[index + 2] = 255 - value;
+                    imageData.data[index + 3] = 255;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function simulateGPR() {
+            for (let sx = 2; sx < Nx - 1; sx++) {
+                let sz = 10;
+                Ez = Ez.map(row => row.map(() => 0));
+                Hx = Hx.map(row => row.map(() => 0));
+                Hz = Hz.map(row => row.map(() => 0));
+                for (let n = 0; n < Nt; n++) {
+                    for (let i = 1; i < Nz - 1; i++) {
+                        for (let j = 1; j < Nx - 1; j++) {
+                            Ez[i][j] = Ez[i][j] + (dt / (epsilon0 * eps_r[i][j])) * 
+                                ((Hz[i][j] - Hz[i - 1][j]) / dz - (Hx[i][j] - Hx[i][j - 1]) / dx);
+                        }
+                    }
+                    let f0 = 3e9;
+                    let t0 = 1 / f0;
+                    Ez[sz][sx] += Math.exp(-(((n * dt - t0) * f0 * Math.PI) ** 2));
+                    for (let i = 0; i < Nz - 1; i++) {
+                        for (let j = 0; j < Nx - 1; j++) {
+                            Hx[i][j] -= (dt / (mu0 * dx)) * (Ez[i][j + 1] - Ez[i][j]);
+                            Hz[i][j] += (dt / (mu0 * dz)) * (Ez[i + 1][j] - Ez[i][j]);
+                        }
+                    }
+                    if (n % 10 === 0) updateCanvas();
+                }
+            }
+        }
+
+        simulateGPR();
+    </script>
+</body>
+</html>
